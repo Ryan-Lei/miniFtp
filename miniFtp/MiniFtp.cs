@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Net;
 using System.IO;
+using System.Text.RegularExpressions;
 
 public class MiniFtp
 {
@@ -105,27 +106,27 @@ public class MiniFtp
     /// <param name="uri"></param>
     /// <returns></returns>
     public List<FolderFile> GetFileList(Uri uri)
-    {  
- 
-        FtpWebRequest request = (FtpWebRequest)WebRequest.Create(uri);
-        request.UsePassive = _isUsePassive;
-        request.Method = WebRequestMethods.Ftp.ListDirectoryDetails; 
-        request.Credentials = FtpNetworkCredential;
-
-        FtpWebResponse response = (FtpWebResponse)request.GetResponse();
-        Stream responseStream = response.GetResponseStream();
-        StreamReader reader = new StreamReader(responseStream);
+    {
         List<FolderFile> folderFiles = new List<FolderFile>();
 
         try
         {
+            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(uri);
+            request.UsePassive = _isUsePassive;
+            request.Method = WebRequestMethods.Ftp.ListDirectoryDetails;
+            request.Credentials = FtpNetworkCredential;
+
+            FtpWebResponse response = (FtpWebResponse)request.GetResponse();
+            Stream responseStream = response.GetResponseStream();
+            StreamReader reader = new StreamReader(responseStream); 
+
             string[] stringSeparators = new string[] { "\r\n" };
             string[] rawFolderFileList = reader.ReadToEnd().Split(stringSeparators, StringSplitOptions.RemoveEmptyEntries);
-            
+            string[] rawFolderFileCheckList = GetFolderFileList(uri);
             for (int i=0; i< rawFolderFileList.Length;i++)
             {
                 var rawFolderFile = rawFolderFileList[i].Split(new string[] { "    " }, StringSplitOptions.RemoveEmptyEntries); 
-                folderFiles.Add(GetFolderFile(uri, rawFolderFile));
+                folderFiles.Add(GetFolderFile(uri, rawFolderFile, rawFolderFileCheckList));
 
             }
 
@@ -262,25 +263,60 @@ public class MiniFtp
     /// <param name="uri"></param>
     /// <param name="rawFolderFile"></param>
     /// <returns></returns>
-    private FolderFile GetFolderFile(Uri uri,string[] rawFolderFile)
+    private FolderFile GetFolderFile(Uri uri,string[] rawFolderFile,string[] rawFolderFileCheckList)
     {
         FolderFile folderFile = new FolderFile();
-        int folderFileIndex = rawFolderFile.Length - 1;
-        int folderFileNameIndex = rawFolderFile[folderFileIndex].Trim().IndexOf(' ')+1;
+        string folderFileName = "";
 
         foreach (var line in rawFolderFile)
         {
-            folderFile.IsFolder = line.Contains("<DIR>") ? true : false;
+            if (!folderFile.IsFolder)
+            {
+                folderFile.IsFolder = line.Contains("<DIR>") ? true : false;
 
-            if (folderFile.IsFolder)
-                break;
-        }
-         
-        folderFile.FilePath = uri.LocalPath.TrimEnd('/')+"/"+ rawFolderFile[folderFileIndex].Trim().Substring(folderFileNameIndex);
-        folderFile.FolderName = folderFile.IsFolder ? rawFolderFile[folderFileIndex].Trim().Substring(folderFileNameIndex) : "";
-        folderFile.FileName = folderFile.IsFolder ? "" : rawFolderFile[folderFileIndex].Trim().Substring(folderFileNameIndex);
+                if (line.StartsWith("d"))
+                {
+                    folderFile.IsFolder = true;
+                }
+            } 
+
+            foreach(var checkItem in rawFolderFileCheckList)
+            {
+                if (line.Contains(checkItem))
+                {
+                    folderFileName = checkItem;
+                    break;
+                }
+            } 
+        } 
+
+        folderFile.FilePath = uri.LocalPath.TrimEnd('/')+"/"+ folderFileName;
+        folderFile.FolderName = folderFile.IsFolder ? folderFileName : "";
+        folderFile.FileName = folderFile.IsFolder ? "" : folderFileName;
 
         return folderFile;
+    }
+
+    /// <summary>
+    /// GetFolderFileList
+    /// </summary>
+    /// <param name="uri"></param>
+    /// <returns></returns>
+    private string[] GetFolderFileList(Uri uri)
+    {
+        FtpWebRequest request = (FtpWebRequest)WebRequest.Create(uri);
+        request.UsePassive = _isUsePassive;
+        request.Method = WebRequestMethods.Ftp.ListDirectory;
+        request.Credentials = FtpNetworkCredential;
+
+        FtpWebResponse response = (FtpWebResponse)request.GetResponse();
+        Stream responseStream = response.GetResponseStream();
+        StreamReader reader = new StreamReader(responseStream);
+
+        string[] stringSeparators = new string[] { "\r\n" };
+        string[] rawFolderFileList = reader.ReadToEnd().Split(stringSeparators, StringSplitOptions.RemoveEmptyEntries);
+
+        return rawFolderFileList;
     }
 
     /// <summary>

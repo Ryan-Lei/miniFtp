@@ -14,15 +14,15 @@ namespace ConsoleApp
             MiniFtp miniFtp = new MiniFtp("UserName", "Password");
             Uri uri = new Uri("ftp://host/dir/temp.txt");
 
-            Console.WriteLine("IsFileExist: "+miniFtp.IsFileExist(uri));
+            Console.WriteLine("IsFileExist: " + miniFtp.IsFileExist(uri));
 
-            uri = new Uri("ftp://host/dir");
-            Console.WriteLine("IsDirectoryExist: " + miniFtp.IsDirectoryExist(uri));
+            //uri = new Uri("ftp://host/dir");
+            //Console.WriteLine("IsDirectoryExist: " + miniFtp.IsDirectoryExist(uri));
 
             //uri = new Uri("ftp://host/dir");
             //List<FolderFile> folderFiles = miniFtp.GetFileList(uri);
 
-            //foreach(var folderFile in folderFiles)
+            //foreach (var folderFile in folderFiles)
             //{
             //    Console.WriteLine(folderFile.FilePath);
             //}
