@@ -12,8 +12,9 @@ namespace ConsoleApp
         static void Main(string[] args)
         {
             MiniFtp miniFtp = new MiniFtp("ftpuser", "ftpuser$");
-            Uri uri = new Uri("ftp://192.168.100.118/vmware_workstation_key.txt");
-            miniFtp.IsFileExist(uri);
+            Uri uri = new Uri("ftp://192.168.100.118/OS/Microsoft");
+            miniFtp.GetFileList(uri);
+            Console.ReadLine();
 
         }
     }
