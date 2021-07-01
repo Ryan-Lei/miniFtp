@@ -141,6 +141,122 @@ public class MiniFtp
     }
 
     /// <summary>
+    /// DownloadFile
+    /// </summary>
+    /// <param name="uri"></param>
+    /// <param name="filePath"></param>
+    public void DownloadFile( Uri uri, string filePath)
+    {
+        try
+        {
+            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(uri);
+            request.KeepAlive = true;
+            request.UsePassive = IsUsePassive;
+            request.UseBinary = _isUseBinary;
+            request.Credentials = FtpNetworkCredential;
+            request.Method = WebRequestMethods.Ftp.DownloadFile;
+
+            FtpWebResponse response = (FtpWebResponse)request.GetResponse();
+            using (Stream responseStream = response.GetResponseStream())
+            using (FileStream fs = new FileStream(filePath, FileMode.Create))
+            {
+                byte[] buffer = new byte[10240];
+                int ReadCount = responseStream.Read(buffer, 0, buffer.Length);
+                while (ReadCount > 0)
+                {
+                    fs.Write(buffer, 0, ReadCount);
+                    ReadCount = responseStream.Read(buffer, 0, buffer.Length);
+                }
+            } 
+ 
+            response.Close();
+            response.Dispose();
+        }
+        catch (Exception ex)
+        {
+            throw ex;
+        }
+
+    }
+
+    /// <summary>
+    /// UploadFile
+    /// </summary>
+    /// <param name="uri"></param>
+    /// <param name="localFilePath"></param>
+    public void UploadFile(Uri uri, string localFilePath)
+    {
+        try
+        {
+            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(uri);
+            request.Method = WebRequestMethods.Ftp.UploadFile;
+            request.KeepAlive = true;
+            request.UsePassive = IsUsePassive;
+            request.UseBinary = IsUseBinary; 
+            request.Credentials = FtpNetworkCredential;
+            
+            using (Stream source = File.OpenRead(localFilePath))
+            {
+                using (Stream dest = request.GetRequestStream())
+                {
+                    source.CopyTo(dest);
+                }
+            }  
+        }
+        catch(Exception ex)
+        {
+            throw ex;
+        }
+         
+    }
+
+    /// <summary>
+    /// DeleteFile
+    /// </summary>
+    /// <param name="uri"></param>
+    public void DeleteFile(Uri uri)
+    { 
+        try
+        {
+            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(uri);
+            request.Credentials = FtpNetworkCredential;
+            request.UsePassive = IsUsePassive;
+            request.UseBinary = IsUseBinary;
+            request.Method = WebRequestMethods.Ftp.DeleteFile; 
+
+            FtpWebResponse response = (FtpWebResponse)request.GetResponse(); 
+            response.Close(); 
+        }
+        catch (WebException webException)
+        {
+            throw webException;
+        } 
+
+    }
+
+    /// <summary>
+    /// RenameFile
+    /// </summary>
+    /// <param name="uri"></param>
+    /// <param name="newFileName"></param>
+    public void RenameFile( Uri uri, string newFileName)
+    {
+        try
+        {
+            FtpWebRequest request = (FtpWebRequest)WebRequest.Create(uri);
+            request.Credentials = FtpNetworkCredential; 
+            request.RenameTo = newFileName;
+            request.Method = WebRequestMethods.Ftp.Rename;
+            FtpWebResponse response = (FtpWebResponse)request.GetResponse();
+            response.Close();
+        }
+        catch(Exception ex)
+        {
+            throw ex;
+        } 
+    }
+
+    /// <summary>
     /// GetFolderFile
     /// </summary>
     /// <param name="uri"></param>
@@ -160,7 +276,7 @@ public class MiniFtp
                 break;
         }
          
-        folderFile.FilePath = uri.LocalPath+"/"+ rawFolderFile[folderFileIndex].Trim().Substring(folderFileNameIndex);
+        folderFile.FilePath = uri.LocalPath.TrimEnd('/')+"/"+ rawFolderFile[folderFileIndex].Trim().Substring(folderFileNameIndex);
         folderFile.FolderName = folderFile.IsFolder ? rawFolderFile[folderFileIndex].Trim().Substring(folderFileNameIndex) : "";
         folderFile.FileName = folderFile.IsFolder ? "" : rawFolderFile[folderFileIndex].Trim().Substring(folderFileNameIndex);
 
